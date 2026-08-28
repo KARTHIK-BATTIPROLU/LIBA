@@ -1,0 +1,8 @@
+faster-whisper
+piper-tts
+requests
+anthropic
+sounddevice
+scipy
+numpy
+python-dotenv
