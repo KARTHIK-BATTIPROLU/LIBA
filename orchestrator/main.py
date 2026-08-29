@@ -5,7 +5,6 @@ import time
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-import groq
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -16,6 +15,7 @@ from tts.speaker import TTSSpeaker
 from orchestrator.permission_gate import PermissionGate
 from orchestrator.ufo_bridge import UFOBridge
 from orchestrator.logger import AuditLogger
+from orchestrator.groq_pool import groq_chat, pool_status
 
 load_dotenv(PROJECT_ROOT / ".env")
 logger = logging.getLogger("LIBA.Main")
@@ -45,56 +45,22 @@ class LIBAAgent:
         self.ufo = UFOBridge()
         self.audit = AuditLogger()
         
-        self.groq_api_key = os.getenv("GROQ_API_KEY")
-        if self.groq_api_key:
-            self.groq_client = groq.Groq(api_key=self.groq_api_key)
-            logger.info("Initialized Groq Llama 3.3 70B LLM client.")
-        else:
-            self.groq_client = None
-            logger.warning("GROQ_API_KEY is not set. Using fallback heuristic intent parser.")
+        status = pool_status()
+        logger.info(
+            "Initialized Groq LLM client via GroqPool (%d key(s), active key #%d).",
+            status["total_keys"], status["active_key_index"]
+        )
 
     def parse_llm_decision(self, user_text: str) -> dict:
         """
-        Query Groq Llama 3.3 70B to classify intent into JSON decision.
+        Query Groq LLM (with key rotation & model fallback) to classify intent into JSON decision.
+        Falls back to local heuristic intent parser if all Groq keys/models fail.
         """
-        if not self.groq_client:
-            logger.info("Using fallback heuristic intent parser (GROQ_API_KEY missing)...")
-            lower = user_text.lower()
-            if "impossible_command_xyz" in lower:
-                return {
-                    "action": "execute_ufo",
-                    "description": "Invalid ambiguous command test",
-                    "request_summary": "do impossible_command_xyz on missing app",
-                    "spoken_response": "Attempting to execute requested command."
-                }
-            elif "delete" in lower or "remove" in lower:
-                return {
-                    "action": "delete_file",
-                    "description": f"Delete target specified in: {user_text}",
-                    "request_summary": user_text,
-                    "spoken_response": "Deleting files is a sensitive action."
-                }
-            elif any(w in lower for w in ["open", "type", "write", "click", "launch"]):
-                return {
-                    "action": "open_app",
-                    "description": f"Perform OS task: {user_text}",
-                    "request_summary": user_text,
-                    "spoken_response": f"Sure, processing your OS task to {user_text}."
-                }
-            else:
-                return {
-                    "action": "none",
-                    "description": "General conversation",
-                    "request_summary": "",
-                    "spoken_response": f"You said: {user_text}. I am LIBA, your Windows voice assistant."
-                }
-
         try:
             start_t = time.time()
-            # Try primary Groq model: openai/gpt-oss-120b, fallback to qwen/qwen3.8-27b
             for model_candidate in ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "groq/compound"]:
                 try:
-                    response = self.groq_client.chat.completions.create(
+                    response = groq_chat(
                         model=model_candidate,
                         messages=[
                             {"role": "system", "content": SYSTEM_PROMPT},
@@ -108,15 +74,41 @@ class LIBAAgent:
                     print(f"[Groq LLM ({model_candidate})] Decision received in {time.time() - start_t:.2f}s")
                     return json.loads(raw_text)
                 except Exception as model_err:
-                    logger.debug(f"Model {model_candidate} attempt failed: {model_err}")
+                    logger.debug("Model %s attempt failed: %s", model_candidate, model_err)
                     continue
         except Exception as e:
-            logger.error(f"Groq LLM parsing error: {e}")
+            logger.error("Groq LLM parsing error: %s", e)
+
+        # Fallback heuristic intent parser if Groq is unavailable
+        logger.info("Using fallback heuristic intent parser...")
+        lower = user_text.lower()
+        if "impossible_command_xyz" in lower:
+            return {
+                "action": "execute_ufo",
+                "description": "Invalid ambiguous command test",
+                "request_summary": "do impossible_command_xyz on missing app",
+                "spoken_response": "Attempting to execute requested command."
+            }
+        elif "delete" in lower or "remove" in lower:
+            return {
+                "action": "delete_file",
+                "description": f"Delete target specified in: {user_text}",
+                "request_summary": user_text,
+                "spoken_response": "Deleting files is a sensitive action."
+            }
+        elif any(w in lower for w in ["open", "type", "write", "click", "launch"]):
+            return {
+                "action": "open_app",
+                "description": f"Perform OS task: {user_text}",
+                "request_summary": user_text,
+                "spoken_response": f"Sure, processing your OS task to {user_text}."
+            }
+        else:
             return {
                 "action": "none",
-                "description": "Error parsing intent",
+                "description": "General conversation",
                 "request_summary": "",
-                "spoken_response": "I had trouble processing that request via Groq."
+                "spoken_response": f"You said: {user_text}. I am LIBA, your Windows voice assistant."
             }
 
     def process_command(self, user_text: str, confirmation_callback=None, play_audio: bool = False) -> bool:

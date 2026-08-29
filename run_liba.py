@@ -14,6 +14,7 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
 
 from orchestrator.main import LIBAAgent
 from orchestrator.background_service import LIBABackgroundService
+from orchestrator.event_bridge import start_bridge
 from hermes.hermes_agent import HermesVoiceAgent
 
 def main():
@@ -26,6 +27,17 @@ def main():
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
+
+    # Start event bridge (WebSocket server for desktop-pet animation sync)
+    # Non-blocking — LIBA functions fully even if bridge fails to start
+    try:
+        bridge_ok = start_bridge(host="localhost", port=8766, timeout=5.0)
+        if bridge_ok:
+            print("[EventBridge] WebSocket server started on ws://localhost:8766")
+        else:
+            print("[EventBridge] WARNING: Bridge did not start — animation sync disabled")
+    except Exception as bridge_err:
+        print(f"[EventBridge] WARNING: Failed to start bridge ({bridge_err}) — continuing without animation sync")
 
     print("==================================================")
     print(f"      Hermes Voice Agent Initializing ({args.agent.upper()} Mode) ")

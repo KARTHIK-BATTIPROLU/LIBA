@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "liebe",
+  "name": "Liebe",
+  "description": "LIBA's anti-magic devil companion from Black Clover. Dark silhouette, wild white spiky hair, devil tail.",
+  "sprite": "sprite.png",
+  "preview": "preview.png",
+  "frame": { "width": 768, "height": 832 },
+  "columns": 8,
+  "states": {
+    "idle":         { "row": 0, "frames": 8, "interval": 167 },
+    "runningRight": { "row": 1, "frames": 8, "interval": 83  },
+    "runningLeft":  { "row": 2, "frames": 8, "interval": 83  },
+    "waving":       { "row": 3, "frames": 8, "interval": 125 },
+    "jumping":      { "row": 4, "frames": 8, "interval": 100 },
+    "failed":       { "row": 5, "frames": 8, "interval": 167 },
+    "running":      { "row": 6, "frames": 8, "interval": 83  },
+    "review":       { "row": 7, "frames": 8, "interval": 200 }
+  },
+  "automaticActions": ["review","waving","jumping","review"],
+  "clickActions": ["waving","jumping","failed","review"],
+  "staticExpressions": [
+    {"state":"idle","frame":0},{"state":"idle","frame":2},{"state":"idle","frame":4},
+    {"state":"waving","frame":3},{"state":"review","frame":2},{"state":"failed","frame":2}
+  ],
+  "persona": "You are Liebe, the anti-magic devil from Black Clover. You are Asta's devil - fierce, blunt, loyal, and powerful. You help your user control their Windows computer and answer questions. Keep replies short and sharp, under 2 sentences. Occasionally reference anti-magic or your power when it fits naturally.",
+  "voice": { "style": "blunt and fierce", "language": "en" }
+}

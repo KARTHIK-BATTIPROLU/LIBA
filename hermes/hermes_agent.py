@@ -1,11 +1,9 @@
-import os
 import sys
 import json
 import time
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-import groq
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -20,6 +18,13 @@ from hermes.tool_registry import HERMES_TOOLS_SCHEMA, HermesToolExecutor
 from stt.groq_stt import GroqSTT
 from tts.speaker import TTSSpeaker
 from orchestrator.logger import AuditLogger
+from orchestrator.groq_pool import groq_chat, pool_status
+
+# Event bridge — non-blocking, graceful fallback
+try:
+    from orchestrator.event_bridge import send_event
+except ImportError:
+    def send_event(evt): pass
 
 load_dotenv(PROJECT_ROOT / ".env")
 logger = logging.getLogger("Hermes.Agent")
@@ -41,17 +46,17 @@ class HermesVoiceAgent:
     Hermes Agent runtime connecting LIBA tools into an autonomous function-calling pipeline.
     """
     def __init__(self):
-        self.api_key = os.getenv("GROQ_API_KEY")
-        if not self.api_key:
-            raise ValueError("GROQ_API_KEY is missing from environment!")
-
-        self.groq_client = groq.Groq(api_key=self.api_key)
         self.executor = HermesToolExecutor()
         self.stt = GroqSTT()
         self.tts = TTSSpeaker()
         self.audit = AuditLogger()
         self.models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "groq/compound"]
-        logger.info("Initialized Hermes Voice Agent runtime.")
+        status = pool_status()
+        logger.info(
+            "Initialized Hermes Voice Agent runtime. "
+            "Groq pool: %d key(s), active key #%d.",
+            status["total_keys"], status["active_key_index"]
+        )
 
     def run_agent_turn(self, user_text: str, play_audio: bool = True) -> str:
         """
@@ -68,11 +73,11 @@ class HermesVoiceAgent:
 
         active_model = self.models[0]
         try:
-            # 1. First model call with tools
+            # 1. First model call with tools — pool handles key rotation automatically
             response = None
             for model_cand in self.models:
                 try:
-                    response = self.groq_client.chat.completions.create(
+                    response = groq_chat(
                         model=model_cand,
                         messages=messages,
                         tools=HERMES_TOOLS_SCHEMA,
@@ -82,7 +87,7 @@ class HermesVoiceAgent:
                     active_model = model_cand
                     break
                 except Exception as m_err:
-                    logger.debug(f"Hermes model {model_cand} error: {m_err}")
+                    logger.debug("Hermes model %s error: %s", model_cand, m_err)
                     continue
 
             if not response:
@@ -95,6 +100,7 @@ class HermesVoiceAgent:
                 print(f"[HERMES LLM ({active_model})]: Selected {len(msg.tool_calls)} tool call(s)")
                 messages.append(msg) # Append assistant message with tool calls
 
+                send_event("executing")
                 for tool_call in msg.tool_calls:
                     fn_name = tool_call.function.name
                     fn_args = json.loads(tool_call.function.arguments or "{}")
@@ -112,7 +118,7 @@ class HermesVoiceAgent:
                     })
 
                 # 3. Final model call to generate natural language response after tool execution
-                final_res = self.groq_client.chat.completions.create(
+                final_res = groq_chat(
                     model=active_model,
                     messages=messages,
                     tools=HERMES_TOOLS_SCHEMA,
@@ -127,6 +133,7 @@ class HermesVoiceAgent:
 
             print(f"[HERMES AGENT RESPONSE]: '{final_text}'")
             if play_audio:
+                send_event("speaking")
                 self.tts.speak(final_text, play_audio=True)
 
             self.audit.log_event(

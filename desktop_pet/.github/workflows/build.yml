@@ -1,0 +1,92 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate
+        run: npm run check
+
+      - name: Build
+        run: npm run build -- --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-pet-${{ runner.os }}
+          path: |
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.exe
+            dist/*.tar.gz
+            dist/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Update Latest Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Create latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_SHA: ${{ github.sha }}
+        run: |
+          cat > release-notes.md <<'EOF'
+          Latest Desktop Pet build.
+
+          Download the file for your operating system:
+          - Windows installer: Desktop-Pet-*-win-x64-setup.exe
+          - Windows portable: Desktop-Pet-*-win-x64-portable.exe
+          - macOS Apple Silicon: Desktop-Pet-*-mac-arm64.dmg or .zip
+          - Linux: Desktop-Pet-*-linux-x86_64.AppImage or Desktop-Pet-*-linux-x64.tar.gz
+
+          See README.md for English instructions, README.zh-CN.md for Simplified Chinese, and README.ja.md for Japanese.
+          EOF
+          gh release delete latest --repo "$REPOSITORY" --yes --cleanup-tag || true
+          gh release create latest release-assets/**/* \
+            --repo "$REPOSITORY" \
+            --target "$TARGET_SHA" \
+            --title "Desktop Pet latest" \
+            --notes-file release-notes.md

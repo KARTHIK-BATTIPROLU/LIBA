@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Companion Chat</title>
+    <link rel="stylesheet" href="./chat.css" />
+  </head>
+  <body>
+    <main class="chat-shell">
+      <header class="chat-header">
+        <div>
+          <h1 id="chat-title">伴侣对话</h1>
+          <p id="chat-subtitle">当前角色：桌宠</p>
+        </div>
+        <button id="open-settings" type="button">设置</button>
+      </header>
+
+      <section id="messages" class="messages" aria-live="polite"></section>
+
+      <form id="composer" class="composer">
+        <textarea id="message-input" rows="2" maxlength="1200" placeholder="和她说点什么..." autofocus></textarea>
+        <button id="send-message" type="submit">发送</button>
+      </form>
+
+      <footer class="chat-footer">
+        <span id="status">未配置时会提示打开设置。</span>
+        <button id="clear-history" type="button">清空</button>
+      </footer>
+    </main>
+    <script src="./i18n.js"></script>
+    <script src="./chat.js"></script>
+  </body>
+</html>

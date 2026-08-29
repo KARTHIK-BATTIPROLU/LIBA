@@ -1,0 +1,83 @@
+{
+  "name": "desktop-pet",
+  "version": "0.1.0",
+  "description": "A cross-platform anime desktop pet with character packs, chat, TTS, and multilingual UI.",
+  "author": "Desktop Pet Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/TonyNa-code/desktop-pet#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TonyNa-code/desktop-pet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TonyNa-code/desktop-pet/issues"
+  },
+  "main": "src/main.js",
+  "private": false,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "check": "node --check src/main.js && node --check src/i18n.js && node --check src/preload.js && node --check src/renderer.js && node --check src/chat.js && node --check src/quick-chat.js && node --check src/settings.js && node scripts/validate-assets.js && node scripts/privacy-check.js",
+    "privacy:check": "node scripts/privacy-check.js",
+    "validate:assets": "node scripts/validate-assets.js",
+    "build": "electron-builder"
+  },
+  "keywords": [
+    "desktop-pet",
+    "electron",
+    "anime",
+    "ai-companion",
+    "tts",
+    "gptsovits",
+    "multilingual",
+    "cross-platform",
+    "pet",
+    "spritesheet"
+  ],
+  "devDependencies": {
+    "electron": "^42.0.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "app.desktop.pet",
+    "productName": "Desktop Pet",
+    "artifactName": "Desktop-Pet-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.entertainment"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "artifactName": "Desktop-Pet-${version}-win-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "Desktop-Pet-${version}-win-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "icon": "build/icon.png",
+      "category": "Utility"
+    }
+  }
+}

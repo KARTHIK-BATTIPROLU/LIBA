@@ -1,0 +1,71 @@
+{
+  "name": "Liebe",
+  "description": "LIBA's anti-magic devil companion from Black Clover. Dark silhouette, wild white spiky hair, devil tail.",
+  "frameWidth": 768,
+  "frameHeight": 832,
+  "columns": 8,
+  "actions": [
+    {
+      "name": "idle",
+      "row": 0,
+      "frames": 8,
+      "fps": 6,
+      "loop": true
+    },
+    {
+      "name": "runningRight",
+      "row": 1,
+      "frames": 8,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "runningLeft",
+      "row": 2,
+      "frames": 8,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "waving",
+      "row": 3,
+      "frames": 8,
+      "fps": 8,
+      "loop": false
+    },
+    {
+      "name": "jumping",
+      "row": 4,
+      "frames": 8,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "name": "failed",
+      "row": 5,
+      "frames": 8,
+      "fps": 6,
+      "loop": false
+    },
+    {
+      "name": "running",
+      "row": 6,
+      "frames": 8,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "name": "review",
+      "row": 7,
+      "frames": 8,
+      "fps": 5,
+      "loop": true
+    }
+  ],
+  "defaultAction": "idle",
+  "persona": "You are Liebe, the anti-magic devil from Black Clover. You are Asta's devil \u2014 fierce, blunt, loyal, and powerful. You assist your user with tasks on their computer. Keep replies short and sharp. Occasionally reference anti-magic or your power.",
+  "voice": {
+    "style": "blunt and fierce",
+    "language": "en"
+  }
+}

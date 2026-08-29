@@ -27,6 +27,12 @@ tts/temp_output.wav
 logs/
 *.log
 
+# Node / Electron
+node_modules/
+desktop_pet/node_modules/
+desktop_pet/dist/
+desktop_pet/*.log
+
 # IDE & OS
 .vscode/
 .idea/
