@@ -564,12 +564,15 @@ function createWindow() {
   readProfile();
   recordLaunch();
   const size = displaySize();
-  logDebug("Creating mainWindow with size:", size, "at x:100, y:100");
+  const primary = screen.getPrimaryDisplay().workArea;
+  const x = Math.round(primary.x + primary.width - size.width - 60);
+  const y = Math.round(primary.y + primary.height - size.height - 60);
+  logDebug("Creating mainWindow with size:", size, "at x:", x, "y:", y);
   mainWindow = new BrowserWindow({
     width: size.width,
     height: size.height,
-    x: 100,
-    y: 100,
+    x: x,
+    y: y,
     frame: false,
     transparent: true,
     resizable: false,
@@ -598,7 +601,7 @@ function createWindow() {
   mainWindow.show();
   mainWindow.setAlwaysOnTop(true);
   mainWindow.focus();
-  logDebug("mainWindow created and shown at 100,100.");
+  logDebug("mainWindow created and shown at", x, y);
 }
 
 function createChatWindow() {
