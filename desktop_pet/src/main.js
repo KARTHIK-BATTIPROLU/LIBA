@@ -13,6 +13,8 @@ const {
 const fs = require("node:fs");
 const path = require("node:path");
 
+app.disableHardwareAcceleration();
+
 const debugLogPath = path.resolve(__dirname, "..", "electron_debug.log");
 function logDebug(...args) {
   const line = `[${new Date().toISOString()}] ${args.map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a))).join(" ")}\n`;

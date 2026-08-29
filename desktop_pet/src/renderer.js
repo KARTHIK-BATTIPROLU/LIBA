@@ -227,7 +227,10 @@ function resetAfterSettingsChange() {
     window.clearTimeout(idleTimer);
     setStaticExpression("idle", 0);
   } else {
-    setState("idle");
+    state = "idle";
+    frameIndex = 0;
+    startAnimation();
+    draw();
     scheduleIdleBehavior();
   }
   scheduleStartupGreeting();
@@ -418,9 +421,13 @@ function loadSprite() {
     const nextImage = new Image();
     nextImage.addEventListener("load", () => {
       spriteImage = nextImage;
+      console.log("Sprite loaded successfully:", character.spritePath, nextImage.naturalWidth, "x", nextImage.naturalHeight);
       resolve();
     }, { once: true });
-    nextImage.addEventListener("error", reject, { once: true });
+    nextImage.addEventListener("error", (err) => {
+      console.error("Sprite failed to load:", character.spritePath, err);
+      reject(err);
+    }, { once: true });
     nextImage.src = character.spritePath;
   });
 }
