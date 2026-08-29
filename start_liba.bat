@@ -1,8 +1,8 @@
 @echo off
-REM LIBA Desktop Pet + Voice Agent Launcher (Desktop Pet Only)
+REM LIBA Desktop Pet + Voice Agent Launcher
 
 echo [LIBA] Starting Liebe Desktop Pet...
-start "" "C:\Users\Karthik\OneDrive\Desktop\LIBA\desktop_pet\node_modules\electron\dist\electron.exe" "C:\Users\Karthik\OneDrive\Desktop\LIBA\desktop_pet"
+start "" /D "C:\Users\Karthik\OneDrive\Desktop\LIBA\desktop_pet" "node_modules\electron\dist\electron.exe" .
 
 echo [LIBA] Waiting 3 seconds...
 ping 127.0.0.1 -n 4 >nul
