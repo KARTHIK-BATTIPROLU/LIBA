@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 import logging
@@ -13,6 +14,37 @@ logger = logging.getLogger(__name__)
 # Male British voice model (Jarvis accent)
 VOICE_MODEL_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx"
 VOICE_CONFIG_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alan/medium/en_GB-alan-medium.onnx.json"
+
+
+def sanitize_for_tts(text: str) -> str:
+    """
+    Cleans markdown, typographic punctuation, emojis, and non-ASCII characters
+    to ensure 100% crash-proof espeak/piper phonemization.
+    """
+    if not text:
+        return ""
+    
+    # 1. Normalize typographic quotes and dashes
+    replacements = {
+        "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+        "\u2013": "-", "\u2014": "-", "\u2011": "-", "\u2026": "...",
+        "\r\n": " ", "\n": " ", "\t": " "
+    }
+    for orig, rep in replacements.items():
+        text = text.replace(orig, rep)
+    
+    # 2. Strip markdown headers, bold, italics, code blocks
+    text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
+    text = re.sub(r'`.*?`', '', text)
+    text = re.sub(r'[*_~#>-]', ' ', text)
+    
+    # 3. Strip emojis and non-standard characters (keep standard ASCII punctuation and alphanumeric)
+    text = re.sub(r'[^\x20-\x7E]', ' ', text)
+    
+    # 4. Collapse multiple whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 
 class TTSSpeaker:
     """
@@ -43,14 +75,11 @@ class TTSSpeaker:
         """
         Synthesize text to audio using British male voice and play aloud. Returns total latency in seconds.
         """
-        if not text or not text.strip():
+        clean_text = sanitize_for_tts(text)
+        if not clean_text:
             return 0.0
 
-        # Sanitize text to remove surrogate characters and unencodable symbols
-        text = text.encode('utf-8', 'ignore').decode('utf-8')
-        text = ''.join(c for c in text if ord(c) < 0xD800 or ord(c) > 0xDFFF)
-
-        print(f"[TTS (Jarvis Male Voice)] Synthesizing: '{text}'")
+        print(f"[TTS (Jarvis Male Voice)] Synthesizing: '{clean_text}'")
         start_time = time.time()
         temp_wav = self.tts_dir / "temp_output.wav"
 
@@ -66,24 +95,37 @@ class TTSSpeaker:
             str(temp_wav)
         ]
 
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='replace')
-        stdout, stderr = proc.communicate(input=text)
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding='utf-8',
+                errors='ignore'
+            )
+            stdout, stderr = proc.communicate(input=clean_text)
 
-        if proc.returncode != 0:
-            logger.error(f"Piper TTS error: {stderr}")
-            raise RuntimeError(f"Piper TTS synthesis failed: {stderr}")
+            if proc.returncode != 0:
+                logger.warning(f"Piper TTS warning: {stderr}")
+                return 0.0
 
-        synth_time = time.time() - start_time
-        print(f"[TTS] Synthesized WAV in {synth_time:.2f}s")
+            synth_time = time.time() - start_time
+            print(f"[TTS] Synthesized WAV in {synth_time:.2f}s")
 
-        if play_audio and temp_wav.exists():
-            sr, data = wavfile.read(temp_wav)
-            print("[TTS] Playing audio aloud...")
-            sd.play(data, sr)
-            sd.wait()
-            print("[TTS] Playback completed.")
+            if play_audio and temp_wav.exists():
+                sr, data = wavfile.read(temp_wav)
+                print("[TTS] Playing audio aloud...")
+                sd.play(data, sr)
+                sd.wait()
+                print("[TTS] Playback completed.")
 
-        return time.time() - start_time
+            return time.time() - start_time
+        except Exception as exc:
+            logger.error(f"TTS synthesis exception: {exc}")
+            return 0.0
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
