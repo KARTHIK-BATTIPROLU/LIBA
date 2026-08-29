@@ -596,7 +596,8 @@ function createWindow() {
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.loadFile(path.join(__dirname, "index.html"));
   mainWindow.show();
-  mainWindow.setAlwaysOnTop(true, "screen-saver");
+  mainWindow.setAlwaysOnTop(true);
+  mainWindow.focus();
   logDebug("mainWindow created and shown at 100,100.");
 }
 

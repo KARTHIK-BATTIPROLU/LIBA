@@ -426,6 +426,8 @@ function loadSprite() {
     }, { once: true });
     nextImage.addEventListener("error", (err) => {
       console.error("Sprite failed to load:", character.spritePath, err);
+      const fb = document.getElementById("fallback-pet");
+      if (fb) fb.style.display = "block";
       reject(err);
     }, { once: true });
     nextImage.src = character.spritePath;
