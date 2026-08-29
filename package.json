@@ -1,0 +1,8 @@
+{
+  "name": "liba-desktop-pet",
+  "version": "1.0.0",
+  "main": "desktop_pet/src/main.js",
+  "scripts": {
+    "start": "electron desktop_pet"
+  }
+}
