@@ -564,13 +564,12 @@ function createWindow() {
   readProfile();
   recordLaunch();
   const size = displaySize();
-  const primary = screen.getPrimaryDisplay().workArea;
-  logDebug("Creating mainWindow with size:", size, "primary display:", primary);
+  logDebug("Creating mainWindow with size:", size, "at x:100, y:100");
   mainWindow = new BrowserWindow({
     width: size.width,
     height: size.height,
-    x: Math.round(primary.x + primary.width - size.width - 72),
-    y: Math.round(primary.y + primary.height - size.height - 72),
+    x: 100,
+    y: 100,
     frame: false,
     transparent: true,
     resizable: false,
@@ -596,8 +595,9 @@ function createWindow() {
 
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   mainWindow.loadFile(path.join(__dirname, "index.html"));
+  mainWindow.show();
   mainWindow.setAlwaysOnTop(true, "screen-saver");
-  logDebug("mainWindow created and loadFile called.");
+  logDebug("mainWindow created and shown at 100,100.");
 }
 
 function createChatWindow() {
